@@ -12,5 +12,5 @@ Import `rent_advisor_v1.json` into n8n
 2. Configure credentials (Telegram, Google Sheets, Ollama)
 3. Activate workflow
 
-## Status: 🚧 In Progress
+## Status: In Progress
 
