@@ -1,0 +1,507 @@
+{
+  "name": "Rent_advisior",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": "={{ [\"message\"] }}",
+        "additionalFields": {
+          "chatIds": ""
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        752
+      ],
+      "id": "8a6da221-a3ac-490b-8bf8-ebd4b11a9967",
+      "name": "Telegram Trigger",
+      "webhookId": "b86f33f1-6a0b-429f-91b7-b83e3695655e",
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "txt = _items[0][\"json\"][\"message\"][\"text\"]\nif not txt:\n    return [{\"json\": {\"search_term\": \"\", \"error\": \"empty_input\"}}]\nif txt.isdigit():\n  if len(txt) == 5:\n    search_term = txt\n    search_type = \"zip\"\n  else: \n    return [{\"json\": {\"search_term\": txt, \"error\": \"invalid_zip\"}}]\nelse:\n  search_term = txt.title()\n  search_type = \"city\"\nreturn [{\"json\": {\"search_term\": search_term, \"search_type\": search_type, \"error\": None}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        656
+      ],
+      "id": "23c3acd5-9461-4a5c-b976-782defb0c711",
+      "name": "Name_normalization",
+      "alwaysOutputData": true,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1203215585,
+          "mode": "list",
+          "cachedResultName": "Zip_Zori_willow_city",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit#gid=1203215585"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "RegionName",
+              "lookupValue": "={{ $json.search_term }}"
+            },
+            {
+              "lookupColumn": "City",
+              "lookupValue": "={{ $json.search_term }}"
+            }
+          ]
+        },
+        "combineFilters": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        512,
+        656
+      ],
+      "id": "2d01677e-db6e-4d90-a460-c6bc51d49fb6",
+      "name": "Fetching City or Zip",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "S6RGML9pERBpU39U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "tot_rent = 0\nc = 0\ncity_name = \"\"\nzips = []\nsearch_term = \"this location\"\n\n# Check if we got any data\nif not _items or len(_items) == 0:\n    return [{\"json\": {\n        \"error\": \"no_data\",\n        \"message\": f\"Sorry, no data found for {search_term}.\"\n    }}]\n\nfor item in _items:\n    data = item[\"json\"]\n    \n    if not data:\n        continue\n    \n    # Capture city name from first valid row\n    if not city_name or city_name == \"Unknown\":\n        city_name = data.get(\"City\", \"\")\n    \n    zip_code = data.get(\"RegionName\", \"\")\n    rent = data.get(\"2025-12-31\", \"\")\n    \n    if rent and rent != \"\":\n        try:\n            tot_rent += float(rent)\n            c += 1\n            zips.append(str(zip_code))\n        except ValueError:\n            continue\n\n# No valid rent data found\nif c == 0:\n    return [{\"json\": {\n        \"error\": \"no_rent_data\",\n        \"message\": f\"No rent data available for {city_name if city_name else 'this location'}.\"\n    }}]\n\navg_rent = round(tot_rent / c, 4)\n\nreturn [{\"json\": {\n    \"error\": None,\n    \"city\": city_name,\n    \"avg_rent\": avg_rent,\n    \"zip_count\": c,\n    \"zips_included\": zips\n}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        656
+      ],
+      "id": "3b2b8444-011a-4fa3-a628-7cbe7e57fd22",
+      "name": "Avg_rent, based on usr_ip",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=Avg rent in {{ $json.city }} is {{ $json.avg_rent }} USD\nbased on {{ $json.zip_count }} Zip codes, list of zip codes are:\n\n{{ $json.zips_included.join('\\n') }}\n\nWant more details? ",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        560
+      ],
+      "id": "584d1726-33c0-4258-997e-ed45fe8440a0",
+      "name": "Avg_rent_send_msg",
+      "webhookId": "440986e4-aef8-4798-a8f1-691561e454e0",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a5d2d305-2873-4308-a6db-ae5b60f1eeb2",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        656
+      ],
+      "id": "49c750a5-917e-4c05-bff0-088e28b67744",
+      "name": "Error_usr_inp",
+      "alwaysOutputData": true,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=Error, pls check the input: {{ $json.message}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        752
+      ],
+      "id": "96c8854f-195e-4c5a-b1ce-b97e843a612e",
+      "name": "error_msg",
+      "webhookId": "440986e4-aef8-4798-a8f1-691561e454e0",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "mistral:latest",
+          "mode": "list",
+          "cachedResultName": "mistral:latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=## Task\nProvide detailed rental insights for {{ $('Getting Updated User_sess').last().json.last_city }}.\n\n## Data\n- City: {{ $('Getting Updated User_sess').last().json.last_city }}\n- Average Rent: ${{ $('Getting Updated User_sess').last().json.last_rent }}/month\n- USA National Average: $1,700/month\n\n## Instructions\nThink through this step-by-step:\n\n1. **Affordability Analysis**:\n   - Compute percentage difference using: (Average Rent - 1700) / 1700 * 100\n   - Classify as:\n     - Affordable: less than -10%\n     - Moderate: -10% to +10%\n     - Expensive: greater than +10%\n   - Show your calculation with the actual numbers.\n\n2. **Local Context**: What makes this city's rental market unique? Consider:\n   - Job market and major employers\n   - Population trends (growing/declining)\n   - Demand factors\n   - Safety and crime rates\n\n3. **Neighborhood Recommendations**: Suggest 2-3 neighborhoods that offer good value for renters. Consider safety, commute, and amenities. Explain why.\n\n4. **Money-Saving Tips**: Provide 2-3 actionable tips specific to this city's rental market.\n\n5. **Alternatives**: Suggest 2 similar cities with lower rent that offer comparable lifestyle and safety.\n\n## Verification\nBefore responding, verify your reasoning:\n- Is my percentage calculation correct?\n- Are my neighborhood suggestions realistic and safe for this city?\n- Are my alternative city suggestions actually cheaper with similar safety levels?\n\n## Response Format\n- Use clear subheadings for each section\n- No emojis\n- Keep total response under 300 words\n- Be specific, not generic"
+            }
+          ]
+        },
+        "options": {
+          "system": "You are RentAdvisor, an expert real estate analyst with 15 years of experience helping renters find affordable housing across the US. You combine data analysis with practical local knowledge.\n\nTone: Be conversational, analytical, practical, and friendly throughout your response.",
+          "temperature": 0.3,
+          "top_p": 0.4,
+          "top_k": 60,
+          "num_predict": 500,
+          "repeat_penalty": 1.05,
+          "low_vram": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        720,
+        880
+      ],
+      "id": "ca8f022f-aac9-4161-8c12-df5504f7fcb8",
+      "name": "Message a model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "nPMvvCYVYSrdGF8D",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "15db0c64-4d6d-43a5-ae3a-58e4cd669a8e",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        848
+      ],
+      "id": "1b2d9896-4b63-4732-b720-083dc2fed46a",
+      "name": "LLM-if tiggers",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ",
+          "mode": "list",
+          "cachedResultName": "Rent_looker_Zip+loc",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 36868931,
+          "mode": "list",
+          "cachedResultName": "user_sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit#gid=36868931"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $json.result.chat.id }}",
+            "last_city": "={{ $('Avg_rent, based on usr_ip').item.json.city }}",
+            "last_rent": "={{ $('Avg_rent, based on usr_ip').item.json.avg_rent }}",
+            "timestamp": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "chat_id"
+          ],
+          "schema": [
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_city",
+              "displayName": "last_city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_rent",
+              "displayName": "last_rent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1456,
+        560
+      ],
+      "id": "bbae3815-9f54-4a9e-9c4b-56facbeb6c38",
+      "name": "Updating User_session",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "S6RGML9pERBpU39U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ",
+          "mode": "list",
+          "cachedResultName": "Rent_looker_Zip+loc",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 36868931,
+          "mode": "list",
+          "cachedResultName": "user_sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit#gid=36868931"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "chat_id",
+              "lookupValue": "={{ $('Telegram Trigger').last().json.message.chat.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        848
+      ],
+      "id": "11786720-4280-4a11-bc1d-567af625734e",
+      "name": "Getting Updated User_sess",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "S6RGML9pERBpU39U",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Name_normalization",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LLM-if tiggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Name_normalization": {
+      "main": [
+        [
+          {
+            "node": "Fetching City or Zip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching City or Zip": {
+      "main": [
+        [
+          {
+            "node": "Avg_rent, based on usr_ip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avg_rent, based on usr_ip": {
+      "main": [
+        [
+          {
+            "node": "Error_usr_inp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error_usr_inp": {
+      "main": [
+        [
+          {
+            "node": "Avg_rent_send_msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "error_msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avg_rent_send_msg": {
+      "main": [
+        [
+          {
+            "node": "Updating User_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM-if tiggers": {
+      "main": [
+        [
+          {
+            "node": "Getting Updated User_sess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Getting Updated User_sess": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b25d5920-3383-4c9c-b0a2-68dcebd3f7f9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ff9c628a71effeff345c1c3d64e14be8a7779b7ef68e9dbebe5330c2e7202ee4"
+  },
+  "id": "uHYM0XULahSamERrNlo89",
+  "tags": []
+}
