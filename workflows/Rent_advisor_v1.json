@@ -1,0 +1,382 @@
+{
+  "name": "Rent_advisior",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": "={{ [\"message\"] }}",
+        "additionalFields": {
+          "chatIds": ""
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        656
+      ],
+      "id": "8a6da221-a3ac-490b-8bf8-ebd4b11a9967",
+      "name": "Telegram Trigger",
+      "webhookId": "b86f33f1-6a0b-429f-91b7-b83e3695655e",
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "txt = _items[0][\"json\"][\"message\"][\"text\"]\nif not txt:\n    return [{\"json\": {\"search_term\": \"\", \"error\": \"empty_input\"}}]\nif txt.isdigit():\n  if len(txt) == 5:\n    search_term = txt\n    search_type = \"zip\"\n  else: \n    return [{\"json\": {\"search_term\": txt, \"error\": \"invalid_zip\"}}]\nelse:\n  search_term = txt.title()\n  search_type = \"city\"\nreturn [{\"json\": {\"search_term\": search_term, \"search_type\": search_type, \"error\": None}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        656
+      ],
+      "id": "23c3acd5-9461-4a5c-b976-782defb0c711",
+      "name": "Name_normalization",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1203215585,
+          "mode": "list",
+          "cachedResultName": "Zip_Zori_willow_city",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit#gid=1203215585"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "RegionName",
+              "lookupValue": "={{ $json.search_term }}"
+            },
+            {
+              "lookupColumn": "City",
+              "lookupValue": "={{ $json.search_term }}"
+            }
+          ]
+        },
+        "combineFilters": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        656
+      ],
+      "id": "2d01677e-db6e-4d90-a460-c6bc51d49fb6",
+      "name": "Fetching City or Zip",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "S6RGML9pERBpU39U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "tot_rent = 0\nc = 0\ncity_name = \"\"\nzips = []\nsearch_term = \"this location\"\n\n# Check if we got any data\nif not _items or len(_items) == 0:\n    return [{\"json\": {\n        \"error\": \"no_data\",\n        \"message\": f\"Sorry, no data found for {search_term}.\"\n    }}]\n\nfor item in _items:\n    data = item[\"json\"]\n    \n    if not data:\n        continue\n    \n    # Capture city name from first valid row\n    if not city_name or city_name == \"Unknown\":\n        city_name = data.get(\"City\", \"\")\n    \n    zip_code = data.get(\"RegionName\", \"\")\n    rent = data.get(\"2025-12-31\", \"\")\n    \n    if rent and rent != \"\":\n        try:\n            tot_rent += float(rent)\n            c += 1\n            zips.append(str(zip_code))\n        except ValueError:\n            continue\n\n# No valid rent data found\nif c == 0:\n    return [{\"json\": {\n        \"error\": \"no_rent_data\",\n        \"message\": f\"No rent data available for {city_name if city_name else 'this location'}.\"\n    }}]\n\navg_rent = round(tot_rent / c, 4)\n\nreturn [{\"json\": {\n    \"error\": None,\n    \"city\": city_name,\n    \"avg_rent\": avg_rent,\n    \"zip_count\": c,\n    \"zips_included\": zips\n}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        656
+      ],
+      "id": "3b2b8444-011a-4fa3-a628-7cbe7e57fd22",
+      "name": "Avg_rent, based on usr_ip",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=Avg rent in {{ $json.city }} is {{ $json.avg_rent }} USD\nbased on {{ $json.zip_count }} Zip codes, list of zip codes are:\n\n{{ $json.zips_included.join('\\n') }}\n\nWant more details? ",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        560
+      ],
+      "id": "584d1726-33c0-4258-997e-ed45fe8440a0",
+      "name": "Avg_rent_send_msg",
+      "webhookId": "440986e4-aef8-4798-a8f1-691561e454e0",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a5d2d305-2873-4308-a6db-ae5b60f1eeb2",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        656
+      ],
+      "id": "49c750a5-917e-4c05-bff0-088e28b67744",
+      "name": "Error_usr_inp"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=Error, pls check the input: {{ $json.message}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        752
+      ],
+      "id": "96c8854f-195e-4c5a-b1ce-b97e843a612e",
+      "name": "error_msg",
+      "webhookId": "440986e4-aef8-4798-a8f1-691561e454e0",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        32
+      ],
+      "id": "dada53a0-e0ff-4802-907a-e2cf1629302d",
+      "name": "When chat message received",
+      "webhookId": "647daae5-530b-448b-9a1c-fc2965c6e33e"
+    },
+    {
+      "parameters": {
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        224,
+        232
+      ],
+      "id": "31cd0c0d-e02e-4ecf-9b91-7de1bb7369dd",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        296,
+        456
+      ],
+      "id": "420d2cb8-f932-4029-b107-a35ecb5c6e83",
+      "name": "Ollama Chat Model",
+      "executeOnce": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "ollamaApi": {
+          "id": "nPMvvCYVYSrdGF8D",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        224,
+        -272
+      ],
+      "id": "499d7cfd-a0d6-491b-8ffa-43d2df2d439c",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": "mistral:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        296,
+        -48
+      ],
+      "id": "a07cd299-03af-4896-9107-7c30cf1c1460",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "nPMvvCYVYSrdGF8D",
+          "name": "Ollama account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Name_normalization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Name_normalization": {
+      "main": [
+        [
+          {
+            "node": "Fetching City or Zip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching City or Zip": {
+      "main": [
+        [
+          {
+            "node": "Avg_rent, based on usr_ip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avg_rent, based on usr_ip": {
+      "main": [
+        [
+          {
+            "node": "Error_usr_inp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error_usr_inp": {
+      "main": [
+        [
+          {
+            "node": "Avg_rent_send_msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "error_msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b9e0c50e-de93-4140-9665-578a6c744958",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ff9c628a71effeff345c1c3d64e14be8a7779b7ef68e9dbebe5330c2e7202ee4"
+  },
+  "id": "uHYM0XULahSamERrNlo89",
+  "tags": []
+}
