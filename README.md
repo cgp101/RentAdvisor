@@ -167,8 +167,21 @@ Mistral 7B (~4.4GB RAM) and Llama 3.1 8B (~4.9GB RAM) caused system crashes on l
 
 Council layer architecture remains intact — just swap models when hardware allows or deploy to cloud.
 ### Screenshots of Iternation -1 
+- **Ollama Models**
+  <img width="592" height="111" alt="(base) cgp@Charit-MBPro RentAdvisor  ollama" src="https://github.com/user-attachments/assets/2a61631b-562c-47e5-95eb-efde2dba9ee8" />
+- **Iternation -1 Flow**
+  <img width="1257" height="483" alt="Pasted Graphic 8" src="https://github.com/user-attachments/assets/f842ec09-9567-408f-b0b5-f6cca1600c70" />
+- **City name**
+  <img width="1051" height="552" alt="Avo sent in Toledo is 1120 0037 USD" src="https://github.com/user-attachments/assets/cc180924-6e8f-4c9c-af1c-46eb225222cc" />
+  <img width="1051" height="552" alt="A RentAdviser (Mural 4 4 Gf) and Market Analyst (Lama 45" src="https://github.com/user-attachments/assets/84b70b48-c511-4d75-bc08-e375901b0db8" />
+
+- **Zip Code**
+  <img width="997" height="652" alt="saved on 1 Zip codes, ist of zip codes are" src="https://github.com/user-attachments/assets/21680c13-00ae-44d6-babc-f3ecbca06852" />
+
+ <img width="997" height="652" alt="• Tming Wat for correction of find alternative" src="https://github.com/user-attachments/assets/e5d0632b-b2a5-467d-b822-bc6adf116085" />
 
 
+   
 ## Iteration 2 → phi4-mini:3.8b + phi3:3.8b Council (rent_advisor_v4.json)
 
 ### What Changed from v3
@@ -208,8 +221,15 @@ Council layer architecture remains intact — just swap models when hardware all
 {{ $('phi3:3').first().json.content.replace(/\*/g, '').replace(/#/g, '') }}
 ```
 ### Screenshots of Iternation - 2
+- **City name**
+  ￼<img width="1068" height="601" alt="Pasted Graphic 12" src="https://github.com/user-attachments/assets/57802c60-da93-4bd5-a25e-5f8a11d34d24" />
 
+   <img width="1051" height="552" alt="H Councl Summar" src="https://github.com/user-attachments/assets/62e2cba3-61b4-40a5-9372-a5403946195a" />
 
+- **Zip Code**
+  <img width="1068" height="601" alt="This message was sere automatically with ne" src="https://github.com/user-attachments/assets/0dfd5744-fb13-4365-bae3-872d0509a422" />
+
+  <img width="1068" height="601" alt="Verdiet Altardsele (hersatie" src="https://github.com/user-attachments/assets/456ca589-8c35-40fb-924c-8458d49cd644" />
 
 
 ## Architecture Overview
@@ -314,7 +334,7 @@ Copy the forwarding URL (e.g., `https://random-id.ngrok-free.app`)
 ### Step 3: Configure n8n Credentials
 
 1. In n8n: Credentials → Add Credential → Ollama
-2. Base URL: Paste ngrok URL
+2. Base URL: Paste the ngrok URL
 3. Models auto-populate from your local Ollama
 
 **Note:** ngrok URL changes on restart. Update n8n credentials accordingly.
@@ -322,11 +342,12 @@ Copy the forwarding URL (e.g., `https://random-id.ngrok-free.app`)
 
 ## How to use 
 Import `rent_advisor_v4.json` into n8n
-2. Configure credentials (Telegram, Google Sheets, Ollama)
+2. Configure credentials (Telegram, Google Sheets, Ollama, and Ngrok)
 3. Activate workflow
 ## Screenshots
-Overall flow with Ollama
-<img width="1326" height="544" alt="image" src="https://github.com/user-attachments/assets/906615aa-6476-4821-ba05-0e778a0f92ca" />
+Overall flow
+<img width="1242" height="527" alt="image" src="https://github.com/user-attachments/assets/5eb3eb6f-746b-4e9b-926c-cbb92bff25be" />
+
 
 
 ## Status: In Progress
