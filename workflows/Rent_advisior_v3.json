@@ -1,0 +1,640 @@
+{
+  "name": "Rent_advisior",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": "={{ [\"message\"] }}",
+        "additionalFields": {
+          "chatIds": ""
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        688
+      ],
+      "id": "8a6da221-a3ac-490b-8bf8-ebd4b11a9967",
+      "name": "Telegram Trigger",
+      "webhookId": "b86f33f1-6a0b-429f-91b7-b83e3695655e",
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "txt = _items[0][\"json\"][\"message\"][\"text\"].strip().lower()\n\nif not txt:\n    return [{\"json\": {\"search_term\": \"\", \"search_type\": \"\", \"confidence\": \"low\", \"error\": \"empty_input\"}}]\n\n# Zip code extraction\nwords = txt.replace(',', ' ').replace('.', ' ').replace('?', ' ').replace('!', ' ').split()\nfor word in words:\n    clean_word = word.strip('-')\n    if clean_word.isdigit() and len(clean_word) == 5:\n        return [{\"json\": {\"search_term\": clean_word, \"search_type\": \"zip\", \"confidence\": \"high\", \"error\": None}}]\n    if '-' in word:\n        parts = word.split('-')\n        if len(parts) == 2 and parts[0].isdigit() and len(parts[0]) == 5:\n            return [{\"json\": {\"search_term\": parts[0], \"search_type\": \"zip\", \"confidence\": \"high\", \"error\": None}}]\n\nstate_abbrevs = {\n    'al': 'alabama', 'ak': 'alaska', 'az': 'arizona', 'ar': 'arkansas', 'ca': 'california',\n    'co': 'colorado', 'ct': 'connecticut', 'de': 'delaware', 'fl': 'florida', 'ga': 'georgia',\n    'hi': 'hawaii', 'id': 'idaho', 'il': 'illinois', 'in': 'indiana', 'ia': 'iowa',\n    'ks': 'kansas', 'ky': 'kentucky', 'la': 'louisiana', 'me': 'maine', 'md': 'maryland',\n    'ma': 'massachusetts', 'mi': 'michigan', 'mn': 'minnesota', 'ms': 'mississippi', 'mo': 'missouri',\n    'mt': 'montana', 'ne': 'nebraska', 'nv': 'nevada', 'nh': 'new hampshire', 'nj': 'new jersey',\n    'nm': 'new mexico', 'ny': 'new york', 'nc': 'north carolina', 'nd': 'north dakota', 'oh': 'ohio',\n    'ok': 'oklahoma', 'or': 'oregon', 'pa': 'pennsylvania', 'ri': 'rhode island', 'sc': 'south carolina',\n    'sd': 'south dakota', 'tn': 'tennessee', 'tx': 'texas', 'ut': 'utah', 'vt': 'vermont',\n    'va': 'virginia', 'wa': 'washington', 'wv': 'west virginia', 'wi': 'wisconsin', 'wy': 'wyoming',\n    'dc': 'washington dc'\n}\n\ncity_abv = {\n    'nyc': 'new york city', 'la': 'los angeles', 'sf': 'san francisco', 'philly': 'philadelphia',\n    'vegas': 'las vegas', 'dc': 'washington dc', 'chi': 'chicago', 'atl': 'atlanta',\n    'bk': 'brooklyn', 'bklyn': 'brooklyn', 'qns': 'queens', 'bx': 'bronx', 'si': 'staten island',\n    'soho': 'manhattan', 'tribeca': 'manhattan', 'harlem': 'manhattan', 'midtown': 'manhattan',\n    'fidi': 'manhattan', 'uws': 'manhattan', 'ues': 'manhattan', 'les': 'manhattan',\n    'dumbo': 'brooklyn', 'williamsburg': 'brooklyn', 'bushwick': 'brooklyn',\n    'astoria': 'queens', 'flushing': 'queens', 'jamaica': 'queens',\n    'jersey city': 'jersey city', 'hoboken': 'hoboken'\n}\n\nnoise_words = [\n    'i', 'to', 'about', 'me', 'tell', 'show', 'give',\n    'whats', \"what's\", 'what', 'how', 'much', 'is', 'are', 'the', 'for', 'in', 'at', 'near', 'around',\n    'average', 'avg', 'rent', 'cost', 'price', 'pricing', 'rate', 'rates',\n    'apartment', 'apartments', 'studio', 'bedroom', 'br', 'bed', 'living', 'housing',\n    'cheap', 'affordable', 'expensive', 'nice', 'good', 'best',\n    'area', 'place', 'places', 'neighborhood', 'neighbourhoods', 'neighbourhood', 'side',\n    'looking', 'want', 'need', 'find', 'search', 'searching', 'know', 'like', 'information','info'\n]\n\nfor char in ['?', '!', '.', ',', \"'\", '\"']:\n    txt = txt.replace(char, ' ')\n\ncleaned = ' '.join([w for w in txt.split() if w not in noise_words]).strip()\n\nfor alias, real_name in city_abv.items():\n    if alias in cleaned.split():\n        return [{\"json\": {\"search_term\": real_name.title(), \"search_type\": \"city\", \"confidence\": \"high\", \"error\": None}}]\n\nif cleaned in state_abbrevs:\n    return [{\"json\": {\"search_term\": state_abbrevs[cleaned].title(), \"search_type\": \"state\", \"confidence\": \"high\", \"error\": None}}]\n\nmulti_word_cities = [\n    'new york', 'los angeles', 'san francisco', 'san diego', 'san jose', 'las vegas',\n    'new orleans', 'salt lake city', 'kansas city', 'oklahoma city', 'jersey city',\n    'virginia beach', 'long beach', 'santa monica', 'palm springs', 'fort worth',\n    'el paso', 'corpus christi', 'st louis', 'st paul', 'des moines', 'baton rouge',\n    'grand rapids', 'little rock', 'ann arbor', 'palo alto', 'santa barbara'\n]\n\nfor city in multi_word_cities:\n    if city in cleaned:\n        return [{\"json\": {\"search_term\": city.title(), \"search_type\": \"city\", \"confidence\": \"high\", \"error\": None}}]\n\nwords_list = cleaned.split()\nif len(words_list) >= 2 and words_list[-1] in state_abbrevs:\n    return [{\"json\": {\"search_term\": ' '.join(words_list[:-1]).title(), \"search_type\": \"city\", \"confidence\": \"high\", \"error\": None}}]\n\nif cleaned:\n    return [{\"json\": {\"search_term\": cleaned.title(), \"search_type\": \"city\", \"confidence\": \"medium\", \"error\": None}}]\n\nfallback = ''.join(c for c in txt if c.isalpha() or c == ' ').strip()\nif fallback:\n    return [{\"json\": {\"search_term\": fallback.title(), \"search_type\": \"city\", \"confidence\": \"low\", \"error\": None}}]\n\nreturn [{\"json\": {\"search_term\": \"\", \"search_type\": \"\", \"confidence\": \"low\", \"error\": \"no_location_found\"}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        880
+      ],
+      "id": "23c3acd5-9461-4a5c-b976-782defb0c711",
+      "name": "Name_normalization",
+      "alwaysOutputData": true,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1203215585,
+          "mode": "list",
+          "cachedResultName": "Zip_Zori_willow_city",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit#gid=1203215585"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "RegionName",
+              "lookupValue": "={{ $json.search_term }}"
+            },
+            {
+              "lookupColumn": "City",
+              "lookupValue": "={{ $json.search_term }}"
+            }
+          ]
+        },
+        "combineFilters": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        496,
+        880
+      ],
+      "id": "2d01677e-db6e-4d90-a460-c6bc51d49fb6",
+      "name": "Fetching City or Zip",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "S6RGML9pERBpU39U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "tot_rent = 0\nc = 0\ncity_name = \"\"\ncounty = \"\"\nmetro = \"\"\nzips = []\nsearch_term = \"this location\"\n\n# Check if we got any data\nif not _items or len(_items) == 0:\n    return [{\"json\": {\n        \"error\": \"no_data\",\n        \"message\": f\"Sorry, no data found for {search_term}.\"\n    }}]\n\nfor item in _items:\n    data = item[\"json\"]\n    \n    if not data:\n        continue\n    \n    # Capture city, county, metro from first valid row\n    if not city_name or city_name == \"Unknown\":\n        city_name = data.get(\"City\", \"\")\n        county = data.get(\"CountyName\", \"\")\n        metro = data.get(\"Metro\", \"\")\n    \n    zip_code = data.get(\"RegionName\", \"\")\n    rent = data.get(\"2025-12-31\", \"\")\n    \n    if rent and rent != \"\":\n        try:\n            tot_rent += float(rent)\n            c += 1\n            zips.append(str(zip_code))\n        except ValueError:\n            continue\n\n# No valid rent data found\nif c == 0:\n    return [{\"json\": {\n        \"error\": \"no_rent_data\",\n        \"message\": f\"No rent data available for {city_name if city_name else 'this location'}.\"\n    }}]\n\navg_rent = round(tot_rent / c, 4)\n\nreturn [{\"json\": {\n    \"error\": None,\n    \"city\": city_name,\n    \"county\": county,\n    \"metro\": metro,\n    \"avg_rent\": avg_rent,\n    \"zip_count\": c,\n    \"zips_included\": zips\n}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        880
+      ],
+      "id": "3b2b8444-011a-4fa3-a628-7cbe7e57fd22",
+      "name": "Avg_rent, based on usr_ip",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=Avg rent in {{ $json.city }} ({{ $json.county }}, {{ $json.metro }}) is {{ $json.avg_rent }} USD\nbased on {{ $json.zip_count }} Zip codes, list of zip codes are:\n\n{{ $json.zips_included.join('\\n') }}\n\nWant more details? ",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        784
+      ],
+      "id": "584d1726-33c0-4258-997e-ed45fe8440a0",
+      "name": "Avg_rent_send_msg",
+      "webhookId": "440986e4-aef8-4798-a8f1-691561e454e0",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a5d2d305-2873-4308-a6db-ae5b60f1eeb2",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1072,
+        880
+      ],
+      "id": "49c750a5-917e-4c05-bff0-088e28b67744",
+      "name": "Error_usr_inp",
+      "alwaysOutputData": true,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=Error, pls check the input: {{ $json.message}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        976
+      ],
+      "id": "96c8854f-195e-4c5a-b1ce-b97e843a612e",
+      "name": "error_msg",
+      "webhookId": "440986e4-aef8-4798-a8f1-691561e454e0",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "15db0c64-4d6d-43a5-ae3a-58e4cd669a8e",
+              "leftValue": "={{ $('Telegram Trigger').first().json.message.text.toLowerCase() }}",
+              "rightValue": "=^(yes|yeah|yea|yep|yup|sure|okay|ok|for sure|of course|cool)$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        688
+      ],
+      "id": "1b2d9896-4b63-4732-b720-083dc2fed46a",
+      "name": "LLM-if tiggers",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ",
+          "mode": "list",
+          "cachedResultName": "Rent_looker_Zip+loc",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 36868931,
+          "mode": "list",
+          "cachedResultName": "user_sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit#gid=36868931"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $json.result.chat.id }}",
+            "last_city": "={{ $('Avg_rent, based on usr_ip').item.json.city }}",
+            "last_rent": "={{ $('Avg_rent, based on usr_ip').item.json.avg_rent }}",
+            "timestamp": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "chat_id"
+          ],
+          "schema": [
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_city",
+              "displayName": "last_city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_rent",
+              "displayName": "last_rent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        784
+      ],
+      "id": "bbae3815-9f54-4a9e-9c4b-56facbeb6c38",
+      "name": "Updating User_session",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "S6RGML9pERBpU39U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "mistral:latest",
+          "mode": "list",
+          "cachedResultName": "mistral:latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=## Task\nProvide detailed rental insights for {{ $('Getting  User_sess').last().json.last_city }}.\n\n## Data\n- City: {{ $('Getting  User_sess').last().json.last_city }}\n- Average Rent: ${{ $('Getting  User_sess').last().json.last_rent }}/month\n- USA National Average: $1,700/month\n\n## Instructions\nThink through this step-by-step:\n\n1. **Affordability Analysis**:\n   - Compute percentage difference using: (Average Rent - 1700) / 1700 * 100\n   - Classify as:\n     - Affordable: less than -10%\n     - Moderate: -10% to +10%\n     - Expensive: greater than +10%\n   - Show your calculation with the actual numbers.\n\n2. **Local Context**: What makes this city's rental market unique? Consider:\n   - Job market and major employers\n   - Population trends (growing/declining)\n   - Demand factors\n   - Safety and crime rates\n\n3. **Neighborhood Recommendations**: Suggest 2-3 neighborhoods that offer good value for renters. Consider safety, commute, and amenities. Explain why.\n\n4. **Money-Saving Tips**: Provide 2-3 actionable tips specific to this city's rental market.\n\n5. **Alternatives**: Suggest 2 similar cities with lower rent that offer comparable lifestyle and safety.\n\n## Verification\nBefore responding, verify your reasoning:\n- Is my percentage calculation correct?\n- Are my neighborhood suggestions realistic and safe for this city?\n- Are my alternative city suggestions actually cheaper with similar safety levels?\n\n## Response Format\n- Use clear subheadings for each section\n- No emojis\n- Keep total response under 300 words\n- Be specific, not generic"
+            }
+          ]
+        },
+        "options": {
+          "system": "You are RentAdvisor, an expert real estate analyst with 15 years of experience helping renters find affordable housing across the US. You combine data analysis with practical local knowledge.\n\nTone: Be conversational, analytical, practical, and friendly throughout your response.",
+          "temperature": 0.3,
+          "top_p": 0.4,
+          "top_k": 60,
+          "num_predict": 500,
+          "repeat_penalty": 1.05,
+          "low_vram": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        720,
+        304
+      ],
+      "id": "ca8f022f-aac9-4161-8c12-df5504f7fcb8",
+      "name": "Mistral_model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "nPMvvCYVYSrdGF8D",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "llama3.1:8b",
+          "mode": "list",
+          "cachedResultName": "llama3.1:8b"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=## Task\nProvide a market-focused rental analysis for {{ $('Getting  User_sess').last().json.last_city }}.\n\n## Data\n- City: {{ $('Getting  User_sess').last().json.last_city }}\n- Average Rent: ${{ $('Getting  User_sess').last().json.last_rent }}/month\n- USA National Average: $1,700/month\n\n## Instructions\n\n1. **Market Valuation**\n   Calculate: (Average Rent - 1700) / 1700 * 100\n   Verdict: OVERPRICED (>15%), UNDERVALUED (<-15%), or FAIRLY PRICED (-15% to +15%).\n   Show your math.\n\n2. **Supply-Demand Dynamics**\n   - Is supply tight or loose?\n   - What's driving demand? (jobs, migration, remote workers)\n   - New construction — adding supply or lagging?\n\n3. **Market Cycle Position**\n   Where is this market? Growth / Peak / Correction / Recovery?\n\n4. **Timing Verdict**\n   Move NOW or WAIT?\n   - Best months to sign a lease\n   - Price direction next 6-12 months\n\n5. **Arbitrage Opportunities**\n   2 cities with similar economy but 20%+ lower rent.\n\n## Response Format\n- Clear subheadings\n- Under 350 words\n- Be direct"
+            }
+          ]
+        },
+        "options": {
+          "system": "You are a Market Analyst, a data-driven real estate market analyst with vast experience evaluating rental markets from an investment perspective. You analyse supply-demand dynamics, price trends, and market cycles. You tell renters whether a city is overpriced, undervalued, or fairly priced and whether now is the right time to move or wait. \n\nTone: Analytical, numbers-focused, direct, objective. No fluff. Think like an investor, advise like a strategist.",
+          "temperature": 0.25,
+          "top_p": 0.4,
+          "top_k": 40,
+          "num_predict": 550,
+          "repeat_penalty": 1.05
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        720,
+        688
+      ],
+      "id": "49ad35b1-5685-4442-b7fc-7c264182f432",
+      "name": "Llama_model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "nPMvvCYVYSrdGF8D",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=📊 Council Analysis for {{ $json.city }}\n\n💰 Rent: ${{ $json.rent }}/month\n🇺🇸 US National Avg: ${{ $json.us_national_avg }}/month\n📈 Difference: {{ $json.diff_percent }}%\n\n🏷️ Verdict: {{ $json.verdict }}\n⏱️ Timing: {{ $json.Suggestion }}\n\n🔄 Alternatives:\n- {{ $json.alternatives[0].city }}, {{ $json.alternatives[0].state }} (~${{ $json.alternatives[0].rent }})\n- {{ $json.alternatives[1].city }}, {{ $json.alternatives[1].state }} (~${{ $json.alternatives[1].rent }})\n- {{ $json.alternatives[2].city }}, {{ $json.alternatives[2].state }} (~${{ $json.alternatives[2].rent }})\n\n---\n⚠️ RentAdvisor (Mistral 4.4 GB) and Market Analyst (Llama 4.9 GB) currently disabled due to hardware constraints (8GB RAM).\n\nArchitecture complete — will retry with smaller models: phi4-mini:3.8b (2.5GB) and phi3:3.8b (2.2GB)",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        496
+      ],
+      "id": "5dc6d7fe-7609-4cc1-b7ee-1934c0876dcb",
+      "name": "Send a text message",
+      "webhookId": "4a412a43-6431-45dd-a4bf-68ce90304dd7",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "4Etci3y7bYYJlGUd",
+          "name": "Rent_looker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "item = _items[0][\"json\"]\ncity = item.get(\"last_city\", \"\")\nrent_str = item.get(\"last_rent\", \"\")\n\n# Handle empty rent\nif not rent_str or rent_str == \"\":\n    return [{\n        \"json\": {\n            \"error\": True,\n            \"message\": \"No previous city data found. Please search for a city first.\"\n        }\n    }]\n\nrent = float(rent_str)\nus_national_avg = 1700\ndiff_percent = ((rent - us_national_avg) / us_national_avg) * 100\n\nif diff_percent < -15:\n    verdict = \"UNDERVALUED\"\n    suggest = \"Good time to move — below market rate\"\nelif diff_percent < -10:\n    verdict = \"AFFORDABLE\"\n    suggest = \"Decent deal — slightly below average\"\nelif diff_percent <= 10:\n    verdict = \"FAIRLY PRICED\"\n    suggest = \"Market rate — negotiate if possible\"\nelif diff_percent <= 15:\n    verdict = \"EXPENSIVE\"\n    suggest = \"Consider waiting or look at nearby cities\"\nelse:\n    verdict = \"OVERPRICED\"\n    suggest = \"Wait for correction or find alternatives\"\n\nif rent > 2500:\n    alternatives = [\n        {\"city\": \"Phoenix\", \"state\": \"AZ\", \"rent\": 1450},\n        {\"city\": \"Austin\", \"state\": \"TX\", \"rent\": 1650},\n        {\"city\": \"Denver\", \"state\": \"CO\", \"rent\": 1850}\n    ]\nelif rent > 1800:\n    alternatives = [\n        {\"city\": \"Columbus\", \"state\": \"OH\", \"rent\": 1200},\n        {\"city\": \"Indianapolis\", \"state\": \"IN\", \"rent\": 1150},\n        {\"city\": \"Kansas City\", \"state\": \"MO\", \"rent\": 1250}\n    ]\nelse:\n    alternatives = [\n        {\"city\": \"Memphis\", \"state\": \"TN\", \"rent\": 1050},\n        {\"city\": \"Oklahoma City\", \"state\": \"OK\", \"rent\": 1000},\n        {\"city\": \"Tulsa\", \"state\": \"OK\", \"rent\": 950}\n    ]\n\nreturn [{\n    \"json\": {\n        \"city\": city,\n        \"rent\": rent,\n        \"us_national_avg\": us_national_avg,\n        \"diff_percent\": round(diff_percent, 1),\n        \"verdict\": verdict,\n        \"Suggestion\": suggest,\n        \"alternatives\": alternatives\n    }\n}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        496
+      ],
+      "id": "f0c3eacd-3c3b-4c88-83bf-a348f98a235f",
+      "name": "Code in Python",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ",
+          "mode": "list",
+          "cachedResultName": "Rent_looker_Zip+loc",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 36868931,
+          "mode": "list",
+          "cachedResultName": "user_sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qvsJ14gZNfCE-Ckcd6xTwOm8MsxU0CEeGM7p9QdT5sQ/edit#gid=36868931"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        272,
+        496
+      ],
+      "id": "725670b7-a6c3-49d8-9d9b-77f134400727",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "S6RGML9pERBpU39U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "items = _items\n\n# Filter out empty rows\nvalid = [i for i in items if i[\"json\"].get(\"last_city\") and i[\"json\"].get(\"last_rent\")]\n\nif not valid:\n    return [{\"json\": {\"error\": True, \"message\": \"No data found\"}}]\n\n# Sort by timestamp descending (newest first)\nvalid.sort(key=lambda x: x[\"json\"].get(\"timestamp\", \"\"), reverse=True)\n\n# Return only the newest\nreturn [valid[0]]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        496
+      ],
+      "id": "e24d24c1-b760-4fdf-b711-aa433f641583",
+      "name": "Code in Python1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "LLM-if tiggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Name_normalization": {
+      "main": [
+        [
+          {
+            "node": "Fetching City or Zip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching City or Zip": {
+      "main": [
+        [
+          {
+            "node": "Avg_rent, based on usr_ip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avg_rent, based on usr_ip": {
+      "main": [
+        [
+          {
+            "node": "Error_usr_inp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error_usr_inp": {
+      "main": [
+        [
+          {
+            "node": "Avg_rent_send_msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "error_msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avg_rent_send_msg": {
+      "main": [
+        [
+          {
+            "node": "Updating User_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM-if tiggers": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Name_normalization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating User_session": {
+      "main": [
+        []
+      ]
+    },
+    "Code in Python": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in Python1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llama_model": {
+      "main": [
+        []
+      ]
+    },
+    "Mistral_model": {
+      "main": [
+        []
+      ]
+    },
+    "Code in Python1": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mistral_model",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Llama_model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c57b2df5-a624-4c82-8d60-52928689d598",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ff9c628a71effeff345c1c3d64e14be8a7779b7ef68e9dbebe5330c2e7202ee4"
+  },
+  "id": "uHYM0XULahSamERrNlo89",
+  "tags": []
+}
