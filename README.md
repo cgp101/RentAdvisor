@@ -348,7 +348,7 @@ Copy the forwarding URL (e.g., `https://random-id.ngrok-free.app`)
 
 
 ## How to use 
-Import `rent_advisor_v4.json` into n8n
+1. Import `rent_advisor_v4.json` into n8n
 2. Configure credentials (Telegram, Google Sheets, Ollama, and Ngrok)
 3. Activate workflow
 ## Screenshots
