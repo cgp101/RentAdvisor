@@ -166,9 +166,16 @@ Mistral 7B (~4.4GB RAM) and Llama 3.1 8B (~4.9GB RAM) caused system crashes on l
 **Current workaround:** Telegram response message is hardcoded instead of LLM-generated while testing smaller models.
 
 Council layer architecture remains intact — just swap models when hardware allows or deploy to cloud.
-### Screenshots of Iternation -1 
+
 - **Ollama Models**
-  <img width="592" height="111" alt="(base) cgp@Charit-MBPro RentAdvisor  ollama" src="https://github.com/user-attachments/assets/2a61631b-562c-47e5-95eb-efde2dba9ee8" />
+
+<img width="592" height="111" alt="(base) cgp@Charit-MBPro RentAdvisor  ollama" src="https://github.com/user-attachments/assets/2a61631b-562c-47e5-95eb-efde2dba9ee8" />
+
+<img width="595" height="203" alt="image" src="https://github.com/user-attachments/assets/be9696c5-3483-4bdd-8152-124743646ae1" />
+
+
+### Screenshots of Iternation -1 
+
 - **Iternation -1 Flow**
   <img width="1257" height="483" alt="Pasted Graphic 8" src="https://github.com/user-attachments/assets/f842ec09-9567-408f-b0b5-f6cca1600c70" />
 - **City name**
