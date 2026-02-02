@@ -206,6 +206,14 @@ Council layer architecture remains intact — just swap models when hardware all
 |------|----------|----------|------|
 | RentAdvisor | Mistral 7B | phi4-mini:3.8b | ~2.5GB |
 | Market Analyst | Llama 3.1 8B | phi3:3.8b | ~2.2GB |
+#### Parameters: 
+- phi4-mini:3.8b:
+  <img width="993" height="610" alt="image" src="https://github.com/user-attachments/assets/f1ed7e0b-0c8d-4605-bd0c-4eb04692ff91" />
+
+- phi3:3.8b:
+  <img width="993" height="610" alt="image" src="https://github.com/user-attachments/assets/7de666c1-ef92-4c3d-8eea-c6119bf36ef8" />
+
+
 
 ### Merge Node
 **Purpose:** Combines outputs from both LLM models into single message
