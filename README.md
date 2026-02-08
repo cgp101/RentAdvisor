@@ -259,7 +259,7 @@ Council layer architecture remains intact — just swap models when hardware all
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      INPUT PROCESSING                               │
 │              ┌─────────────────────────────────────┐                │
-│              │    Name Normalization (Enhanced)    │                │
+│              │    Name Normalization               │                │
 │              │  • Regex ZIP extraction             │                │
 │              │  • State abbreviation detection     │                │
 │              │  • City aliases & boroughs          │                │
